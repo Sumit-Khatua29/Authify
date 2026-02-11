@@ -27,10 +27,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private AppUserDetailsService appUserDetailsService;
 
-    private static final List<String> PUBLIC_URLS = List.of("/login", "/register", "send-reset-otp", "/reset-password", "/logout");
+    private static final List<String> PUBLIC_URLS = List.of("/login", "/register", "/send-reset-otp", "/reset-password", "/logout");
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request, @org.springframework.lang.NonNull HttpServletResponse response, @org.springframework.lang.NonNull FilterChain filterChain) throws ServletException, IOException {
         String path = request.getServletPath();
 
         if (PUBLIC_URLS.contains(path)){
@@ -62,7 +62,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         //3. Validate the token and set security context
 
         if (jwt != null) {
-            // TODO: Extract user details and set security context
+            // Extract user details and set security context
             email =  jwtUtil.extractEmail(jwt);
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null){
 

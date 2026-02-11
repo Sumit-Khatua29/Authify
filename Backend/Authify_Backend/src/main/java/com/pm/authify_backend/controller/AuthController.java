@@ -41,6 +41,7 @@ public class AuthController {
     private ProfileService profileService;
 
     @PostMapping("/login")
+    @SuppressWarnings("null")
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest){
         try {
             authenticate(authRequest.getEmail(), authRequest.getPassword());

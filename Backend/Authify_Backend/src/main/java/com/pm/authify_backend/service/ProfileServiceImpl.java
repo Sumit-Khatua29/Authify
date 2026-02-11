@@ -29,6 +29,7 @@ public class ProfileServiceImpl implements ProfileService {
     private EmailService emailService;
 
     @Override
+    @SuppressWarnings("null")
     public ProfileResponse createProfile(ProfileRequest profileRequest) {
         User newProfile = convertToUserEntity(profileRequest);
         if (userRepository.existsByEmail(profileRequest.getEmail())){
@@ -134,7 +135,7 @@ public class ProfileServiceImpl implements ProfileService {
         existingUser.setVerifyOtpExpiryAt(0L);
         userRepository.save(existingUser);
     }
-    
+
     private ProfileResponse convertToProfileResponse(User newProfile) {
         return ProfileResponse.builder()
                 .name(newProfile.getName())

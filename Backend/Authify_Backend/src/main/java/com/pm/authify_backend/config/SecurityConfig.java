@@ -38,7 +38,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtRequestFilter jwtRequestFilter) throws  Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws  Exception {
         http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -57,6 +57,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("null")
     public CorsFilter corsFilter(){
         return new CorsFilter(corsConfigurationSource());
     }
@@ -74,8 +75,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(){
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(appUserDetailsService);
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(appUserDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(authenticationProvider);
     }
