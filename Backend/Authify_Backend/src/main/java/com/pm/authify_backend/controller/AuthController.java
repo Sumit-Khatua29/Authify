@@ -6,6 +6,7 @@ import com.pm.authify_backend.dto.ResetPasswordRequest;
 import com.pm.authify_backend.service.AppUserDetailsService;
 import com.pm.authify_backend.service.ProfileService;
 import com.pm.authify_backend.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -42,7 +43,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @SuppressWarnings("null")
-    public ResponseEntity<?> login(@RequestBody AuthRequest authRequest){
+    public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         try {
             authenticate(authRequest.getEmail(), authRequest.getPassword());
             final UserDetails userDetails = appUserDetailsService.loadUserByUsername(authRequest.getEmail());
@@ -51,26 +52,23 @@ public class AuthController {
                     .httpOnly(true)
                     .path("/")
                     .maxAge(Duration.ofDays(1))
-                    .sameSite("Strict")
+                    .sameSite("Lax")
                     .build();
 
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
                     .body(new AuthResponse(authRequest.getEmail(), jwtToken));
-        }
-        catch (BadCredentialsException ex){
+        } catch (BadCredentialsException ex) {
             Map<String, Object> error = new HashMap<>();
             error.put("error", true);
             error.put("message", "Email or Password is incorrect");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
 
-        }
-        catch (DisabledException ex){
+        } catch (DisabledException ex) {
             Map<String, Object> error = new HashMap<>();
             error.put("error", true);
             error.put("message", "Account is disabled");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             Map<String, Object> error = new HashMap<>();
             error.put("error", true);
             error.put("message", "Authentication failed");
@@ -83,47 +81,68 @@ public class AuthController {
     }
 
     @GetMapping("/isAuthenticated")
-    public ResponseEntity<Boolean> isAuthenticated(@CurrentSecurityContext(expression = "authentication?.name")String email) {
-        return ResponseEntity.ok(email!=null);
+    public ResponseEntity<Boolean> isAuthenticated(
+            @CurrentSecurityContext(expression = "authentication?.name") String email) {
+        return ResponseEntity.ok(email != null && !email.equals("anonymousUser"));
     }
 
     @PostMapping("/send-reset-otp")
     public void sendResetOtp(@RequestParam String email) {
-        try{
+        try {
             profileService.sendResetOtp(email);
-        } catch (Exception ex){
-           throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
         }
     }
 
     @PostMapping("/reset-password")
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
-        try{
-            profileService.resetPassword(resetPasswordRequest.getEmail(), resetPasswordRequest.getOtp(), resetPasswordRequest.getNewPassword());
-        } catch (Exception ex){
-           throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        try {
+            profileService.resetPassword(resetPasswordRequest.getEmail(), resetPasswordRequest.getOtp(),
+                    resetPasswordRequest.getNewPassword());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
         }
     }
 
     @PostMapping("/send-otp")
     public void sendOtp(@CurrentSecurityContext(expression = "authentication?.name") String email) {
-        try{
+        try {
             profileService.sendOtp(email);
-        } catch (Exception ex){
-           throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
         }
     }
 
     @PostMapping("/verify-otp")
     public void verifyOtp(@RequestBody Map<String, Object> request,
-                          @CurrentSecurityContext(expression = "authentication?.name")String email) {
-        if (request.get("otp").toString() == null) {
+            @CurrentSecurityContext(expression = "authentication?.name") String email) {
+        System.out.println("DEBUG: In verifyOtp. Email: " + email + ", OTP: " + request.get("otp"));
+        Object otpObj = request.get("otp");
+        if (otpObj == null || otpObj.toString().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing Details");
         }
-        try{
-            profileService.verifyOtp(email, request.get("otp").toString());
-        } catch (Exception ex){
-           throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        try {
+            profileService.verifyOtp(email, otpObj.toString());
+        } catch (Exception ex) {
+            System.out.println("DEBUG: ProfileService verifyOtp exception: " + ex.getMessage());
+            ex.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
         }
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body("Logged Out successfully");
+    }
+
 }

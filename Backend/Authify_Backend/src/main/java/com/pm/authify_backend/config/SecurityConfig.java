@@ -1,6 +1,5 @@
 package com.pm.authify_backend.config;
 
-
 import com.pm.authify_backend.Filter.JwtRequestFilter;
 import com.pm.authify_backend.service.AppUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-
     private final AppUserDetailsService appUserDetailsService;
 
     private final JwtRequestFilter jwtRequestFilter;
@@ -38,11 +36,12 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws  Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login","/register","send-reset-otp","/reset-password","/logout")
+                        .requestMatchers("/login", "/register", "/send-reset-otp", "/reset-password", "/logout",
+                                "/error", "/isAuthenticated")
                         .permitAll().anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .logout(AbstractHttpConfigurer::disable)
@@ -52,20 +51,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
     @SuppressWarnings("null")
-    public CorsFilter corsFilter(){
+    public CorsFilter corsFilter() {
         return new CorsFilter(corsConfigurationSource());
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config =  new CorsConfiguration();
+        CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH","OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -74,7 +73,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(){
+    public AuthenticationManager authenticationManager() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(appUserDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(authenticationProvider);
